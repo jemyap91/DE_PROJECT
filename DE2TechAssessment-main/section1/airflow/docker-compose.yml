@@ -1,0 +1,68 @@
+# Section 1: Airflow orchestration for the membership application pipeline.
+#
+# Two services:
+#   airflow-db  PostgreSQL metadata database (internal only — not published
+#               to the host, so it cannot clash with section 2's database
+#               on port 5432)
+#   airflow     `airflow standalone` runs the api-server (UI), scheduler,
+#               dag-processor and triggerer in one container — appropriate
+#               for local evaluation; production would split these out.
+#
+# Usage:
+#   docker compose up          # UI at http://localhost:8080 (no login needed)
+#   ./test_airflow.sh          # stand up, execute the DAG once, assert output
+#
+# The pipeline code is NOT baked into an image: section1/ is bind-mounted at
+# /opt/pipelines/section1 and put on PYTHONPATH, so the DAG imports the same
+# process_applications.py that cron or a developer laptop would run, and
+# outputs land in the same section1/output/ folders.
+
+services:
+  airflow-db:
+    image: postgres:16
+    container_name: section1-airflow-db
+    environment:
+      POSTGRES_DB: airflow
+      POSTGRES_USER: airflow
+      # Local development only — supply real secrets via an env file or
+      # your orchestrator's secret store.
+      POSTGRES_PASSWORD: airflow-dev-password
+    volumes:
+      - airflow-metadata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  airflow:
+    image: apache/airflow:3.0.2
+    container_name: section1-airflow
+    command: standalone
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow-dev-password@airflow-db/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: Asia/Singapore
+      # Local evaluation convenience: serve the UI without a login screen.
+      # Never set this outside a throwaway local environment.
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
+      # Make the bind-mounted pipeline importable by DAGs and workers.
+      PYTHONPATH: /opt/pipelines/section1
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ..:/opt/pipelines/section1
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+volumes:
+  airflow-metadata:
