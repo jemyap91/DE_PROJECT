@@ -1,0 +1,24 @@
+services:
+  db:
+    build: .
+    container_name: section2-sales-db
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: ecommerce
+      # For local development only — supply real secrets via an env file
+      # or your orchestrator's secret store.
+      POSTGRES_PASSWORD: ecommerce-dev-password
+    ports:
+      - "5432:5432"
+    volumes:
+      # Persist data across container restarts. Note: the init scripts in
+      # /docker-entrypoint-initdb.d/ only run when this volume is empty.
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecommerce -d ecommerce"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
