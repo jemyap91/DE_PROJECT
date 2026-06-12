@@ -11,6 +11,11 @@ output folders for downstream consumers.
 section1/
 ├── process_applications.py       # the pipeline (Python 3 stdlib only, no dependencies)
 ├── test_process_applications.py  # unit tests (32 tests)
+├── airflow/
+│   ├── docker-compose.yml        # Airflow 3 + metadata DB, runs the DAG hourly
+│   ├── dags/
+│   │   └── process_applications_dag.py   # process -> quality-gate DAG
+│   └── test_airflow.sh           # integration test: stack up, real run, assert outputs
 ├── input/                        # landing zone — datasets are dropped here hourly
 ├── output/
 │   ├── successful/               # applications_successful_<run timestamp>.csv
@@ -33,27 +38,48 @@ python3 -m unittest test_process_applications -v
 
 No third-party packages are required — only the Python 3 standard library.
 
-## Scheduling (hourly)
+## Scheduling (hourly) — Airflow
 
-The pipeline is a single idempotent script, so plain cron is sufficient.
-Output files are stamped with the run timestamp, so consecutive runs never
-overwrite each other. To run at the top of every hour:
+The scheduling component is implemented with Apache Airflow. The
+`airflow/` folder contains a runnable deployment:
+
+```bash
+cd airflow
+docker compose up          # UI at http://localhost:8080 (no login locally)
+./test_airflow.sh          # or: scripted end-to-end verification
+```
+
+Unpause `process_membership_applications` in the UI (or
+`airflow dags unpause ...`) and the scheduler executes it at the close of
+every hourly interval; the "Trigger" button runs it on demand.
+
+The DAG is two tasks:
+
+1. **`process_hourly_drop`** — calls the unchanged
+   `run_pipeline(input_dir, output_dir, run_timestamp=...)`, stamping the
+   outputs with the data interval's logical date rather than wall-clock
+   time, so re-runs and backfills name their files after the hour of data
+   they represent.
+2. **`check_quality`** — fails the run loudly on the failure modes a plain
+   scheduler misses: zero rows ingested, or a success-ratio collapse
+   (e.g. a renamed input column silently making every row unsuccessful).
+
+Orchestration concerns live in the DAG declaration, not the pipeline:
+`retries=2` with a 5-minute delay absorbs transient failures, run history
+and per-task logs are visible in the UI, and historical reprocessing is
+`airflow backfill create --dag-id process_membership_applications ...`.
+
+The pipeline module itself is deliberately orchestrator-agnostic —
+`run_pipeline` takes its directories and timestamp as arguments and is
+side-effect free apart from writing outputs. If Airflow's operational
+footprint is not warranted, the same script runs under plain cron:
 
 ```cron
 0 * * * * /usr/bin/python3 /path/to/section1/process_applications.py >> /path/to/section1/pipeline.log 2>&1
 ```
 
-The same script drops directly into an Airflow DAG if richer orchestration
-(retries, alerting, backfills) is needed — `run_pipeline(input_dir, output_dir)`
-is importable and side-effect free apart from writing the output files:
-
-```python
-PythonOperator(
-    task_id="process_applications",
-    python_callable=run_pipeline,
-    op_kwargs={"input_dir": INPUT_DIR, "output_dir": OUTPUT_DIR},
-)  # schedule_interval="@hourly"
-```
+Output files are stamped per run either way, so consecutive runs never
+overwrite each other.
 
 ## Processing logic
 
