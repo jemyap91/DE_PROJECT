@@ -50,5 +50,6 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO analytics;
 -- is granted, but the foreign key from transaction_items still blocks
 -- removing any item with sales history — old items that were never
 -- sold can go, the purchase record stays intact.
+-- (No sequence grant needed: identity columns, unlike legacy SERIAL,
+-- draw from their sequence without separate USAGE privileges.)
 GRANT SELECT, INSERT, UPDATE, DELETE ON items TO sales;
-GRANT USAGE ON SEQUENCE items_item_id_seq TO sales;
