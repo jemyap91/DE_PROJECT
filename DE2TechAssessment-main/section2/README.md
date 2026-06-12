@@ -169,6 +169,11 @@ applies the same scripts the Docker image applies, and asserts:
 Current result: **11 passed, 0 failed** (verified against PostgreSQL 17;
 the image pins `postgres:16` and the DDL uses no version-specific features).
 
+The Docker image itself has also been verified end-to-end: `docker build`
+followed by `docker run` brings the container up with all init scripts
+applied (526 members loaded, sample sales seeded) and both analyst queries
+returning the same results as the local test.
+
 ## Assumptions
 
 - The sample catalogue and transactions in `03_seed_sales_sample.sql` are
