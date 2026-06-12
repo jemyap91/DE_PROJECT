@@ -53,7 +53,9 @@ services:
       # Make the bind-mounted pipeline importable by DAGs and workers.
       PYTHONPATH: /opt/pipelines/section1
     ports:
-      - "8080:8080"
+      # Loopback only: with the no-login convenience above, the UI is an
+      # unauthenticated admin surface and must not be reachable from the LAN.
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./dags:/opt/airflow/dags
       - ..:/opt/pipelines/section1
