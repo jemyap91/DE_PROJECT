@@ -1,0 +1,156 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="img-pipeline" name="Image Processing Platform (AWS)">
+    <mxGraphModel dx="1600" dy="950" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ======================= sources ======================= -->
+        <mxCell id="srcLane" value="Sources (outside AWS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#999999;dashed=1;verticalAlign=top;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="220" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="users" value="End users&#10;(image upload web app)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="60" y="120" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kafkaApp" value="Kafka producer&#10;web application" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="60" y="430" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="analysts" value="Company analysts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="60" y="730" width="180" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ======================= ingestion ======================= -->
+        <mxCell id="ingestLane" value="Ingestion" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;dashed=1;verticalAlign=top;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="320" y="60" width="500" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="waf" value="CloudFront + AWS WAF&#10;(TLS termination, edge protection)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="340" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="apigw" value="API Gateway&#10;(upload API, throttling)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="600" y="120" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cognito" value="Amazon Cognito&#10;(user auth, scoped tokens)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="600" y="230" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="presign" value="Lambda: validate request,&#10;issue S3 presigned URL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="600" y="340" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="msk" value="Amazon MSK&#10;(managed Kafka cluster,&#10;multi-AZ, run by our engineers)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="340" y="430" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="mskconnect" value="MSK Connect&#10;S3 sink connector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf" vertex="1" parent="1">
+          <mxGeometry x="600" y="430" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ======================= storage ======================= -->
+        <mxCell id="storeLane" value="Storage (SSE-KMS, 7-day lifecycle purge)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;dashed=1;verticalAlign=top;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="880" y="60" width="260" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="s3raw" value="S3: raw images bucket&#10;lifecycle: expire after 7 days" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="900" y="160" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="s3processed" value="S3: processed images +&#10;metadata (Parquet)&#10;lifecycle: expire after 7 days" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450" vertex="1" parent="1">
+          <mxGeometry x="900" y="430" width="220" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ======================= processing ======================= -->
+        <mxCell id="procLane" value="Processing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#82b366;dashed=1;verticalAlign=top;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1200" y="60" width="260" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="sqs" value="SQS queue + DLQ&#10;(buffer, retries,&#10;poison-message isolation)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="1220" y="160" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="fargate" value="ECS Fargate service&#10;(engineers' processing code,&#10;autoscales on queue depth)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="1220" y="300" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ecr" value="Amazon ECR&#10;(container images,&#10;vulnerability scanning)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366" vertex="1" parent="1">
+          <mxGeometry x="1220" y="440" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ======================= analytics ======================= -->
+        <mxCell id="biLane" value="Business Intelligence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9673a6;dashed=1;verticalAlign=top;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="320" y="660" width="820" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="glue" value="Glue Data Catalog&#10;(schema over metadata)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="340" y="720" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="athena" value="Amazon Athena&#10;(serverless SQL on S3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="600" y="720" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="quicksight" value="Amazon QuickSight&#10;(dashboards, SSO access)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6" vertex="1" parent="1">
+          <mxGeometry x="880" y="720" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ======================= governance ======================= -->
+        <mxCell id="govLane" value="Security, operations &amp; maintenance (cross-cutting)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;dashed=1;verticalAlign=top;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="320" y="870" width="1140" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="iam" value="IAM Identity Center (SSO)&#10;+ least-privilege IAM roles" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="340" y="905" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="kms" value="AWS KMS&#10;(encryption at rest)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="560" y="905" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="trail" value="CloudTrail + GuardDuty&#10;+ AWS Config (audit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="760" y="905" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cw" value="CloudWatch&#10;(metrics, logs, alarms)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="980" y="905" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="iac" value="Terraform + CI/CD&#10;(env &amp; script maintenance)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00" vertex="1" parent="1">
+          <mxGeometry x="1180" y="905" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ======================= edges ======================= -->
+        <mxCell id="e1" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="users" target="waf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="waf" target="apigw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="verify token" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1" edge="1" parent="1" source="apigw" target="cognito">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="cognito" target="presign">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="PUT via presigned URL (TLS)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="presign" target="s3raw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="produce (TLS + SASL/IAM)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="kafkaApp" target="msk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="consume" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="msk" target="mskconnect">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="sink images" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="mskconnect" target="s3raw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="S3 event notification" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="s3raw" target="sqs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="poll" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="sqs" target="fargate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="pull image" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1" edge="1" parent="1" source="ecr" target="fargate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="write outputs + metadata" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="fargate" target="s3processed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="crawl / catalog" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1" edge="1" parent="1" source="s3processed" target="glue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="glue" target="athena">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="SQL" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="athena" target="quicksight">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="SSO dashboards" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1" edge="1" parent="1" source="analysts" target="quicksight">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
